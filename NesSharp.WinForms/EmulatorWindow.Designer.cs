@@ -17,6 +17,11 @@
             {
                 components.Dispose();
             }
+            if (disposing)
+            {
+                DisposeBuffers();
+                DisposeSoundOutput();
+            }
             base.Dispose(disposing);
         }
 

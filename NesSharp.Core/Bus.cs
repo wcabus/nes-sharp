@@ -1,9 +1,10 @@
-﻿namespace NesSharp.Core;
+namespace NesSharp.Core;
 
 public sealed class Bus
 {
     private readonly Cpu _cpu = new();
     private readonly Ppu _ppu = new();
+    private readonly Apu _apu = new();
     private Cartridge? _cartridge;
     
     private readonly byte[] _cpuRam = new byte[2 * 1024];
@@ -18,6 +19,10 @@ public sealed class Bus
     private readonly byte[] _controllerState = new byte[2];
 
     private uint _systemClockCounter;
+    
+    private double _audioTimePerSystemSample;
+    private double _audioTimePerNESClock;
+    private double _audioTime;
 
     public Bus()
     {
@@ -68,6 +73,10 @@ public sealed class Bus
         {
             _ppu.CpuWrite((ushort)(address & 0x0007), data);
         }
+        else if (address is >= 0x4000 and <= 0x4013 or 0x4015 or 0x4017)
+        {
+            _apu.CpuWrite(address, data);
+        }
         else if (address == 0x4014)
         {
             _dmaPage = data;
@@ -96,17 +105,23 @@ public sealed class Bus
         _cpu.Reset();
         _ppu.Reset();
         _systemClockCounter = 0;
+        IsRunning = true;
     }
 
     public void Stop()
     {
+        IsRunning = false;
+
         _cpu.Stop();
         _ppu.Stop();
     }
 
-    public void Clock()
+    public bool IsRunning { get; private set; }
+
+    public bool Clock()
     {
         _ppu.Clock();
+        _apu.Clock();
 
         if (_systemClockCounter % 3 == 0)
         {
@@ -142,6 +157,16 @@ public sealed class Bus
                 _cpu.Clock();
             }
         }
+
+        // Synchronizing with audio
+        var audioSampleReady = false;
+        _audioTime += _audioTimePerNESClock;
+        if (_audioTime >= _audioTimePerSystemSample)
+        {
+            _audioTime -= _audioTimePerSystemSample;
+            AudioSample = _apu.GetOutputSample();
+            audioSampleReady = true;
+        }
         
         if (_ppu.IsNMISet)
         {
@@ -150,6 +175,8 @@ public sealed class Bus
         }
         
         _systemClockCounter++;
+        
+        return audioSampleReady;
     }
 
     public void SetControllerState(int player, bool up, bool down, bool left, bool right, bool start, bool select, bool btnA, bool btnB)
@@ -167,5 +194,12 @@ public sealed class Bus
         _controller[player] = data;
     }
 
+    public void SetSampleFrequency(uint sampleRate)
+    {
+        _audioTimePerSystemSample = 1.0 / sampleRate;
+        _audioTimePerNESClock = 1.0 / 5369318.0; // PPU Clock Frequency
+    }
+
     public Ppu Ppu => _ppu;
+    public double AudioSample { get; private set; }
 }
