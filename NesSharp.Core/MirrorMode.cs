@@ -2,6 +2,7 @@
 
 public enum MirrorMode
 {
+    Hardware,
     Horizontal,
     Vertical,
     OneScreenLow,

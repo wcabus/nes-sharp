@@ -1,4 +1,4 @@
-namespace NesSharp.Core;
+﻿namespace NesSharp.Core;
 
 public sealed class Bus
 {
@@ -173,7 +173,14 @@ public sealed class Bus
             _ppu.IsNMISet = false;
             _cpu.NMI();
         }
-        
+
+        // Check if cartridge is requesting IRQ
+        if (_cartridge!.Mapper!.IRQState())
+        {
+            _cartridge.Mapper.IRQClear();
+            _cpu.IRQ();
+        }
+
         _systemClockCounter++;
         
         return audioSampleReady;

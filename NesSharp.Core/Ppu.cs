@@ -579,6 +579,14 @@ public sealed class Ppu
         }
 
         _cycle++;
+        if (_mask.ShowBackground || _mask.ShowSprites)
+        {
+            if (_cycle == 260 && _scanLine < 240)
+            {
+                _cartridge!.Mapper!.ScanLine();
+            }
+        }
+
         if (_cycle >= 341)
         {
             _cycle = 0;

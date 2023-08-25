@@ -7,12 +7,12 @@ public class Cartridge
     private readonly List<byte> _prgMemory = new();
     private readonly List<byte> _chrMemory = new();
 
-    private int _mapperId = 0;
+    private int _mapperId;
     private MirrorMode _mirrorMode = MirrorMode.Horizontal;
-    private int _prgBanks = 0;
-    private int _chrBanks = 0;
+    private int _prgBanks;
+    private int _chrBanks;
     
-    private MapperBase? _mapper = null;
+    private MapperBase? _mapper;
 
     public static async Task<Cartridge> FromFile(string fileName)
     {
@@ -70,11 +70,10 @@ public class Cartridge
         cartridge._mapperId = ((header.Mapper2 >>> 4) << 4) | (header.Mapper1 >>> 4);
         cartridge._mirrorMode = (header.Mapper1 & 0x01) != 0 ? MirrorMode.Vertical : MirrorMode.Horizontal;
                
+        //if (fileType == 0)
+        //{
 
-        if (fileType == 0)
-        {
-
-        }
+        //}
 
         if (fileType == 1)
         {
@@ -90,11 +89,11 @@ public class Cartridge
         if (fileType == 2 && header2.HasValue)
         {
             // Determine the amount of PRG ROM banks based on the NES 2.0 header2
-            var prgRomSize = ((header2.Value.PrgCharRomSizeMsb & 0x0f) << 8) | header2.Value.PrgRomSizeLsb;
+            var prgRomSize = ((header.PrgRamSize & 0x07) << 8) | header.PrgRomChunks;
             cartridge._prgBanks = prgRomSize;
             cartridge._prgMemory.AddRange(br.ReadBytes(cartridge._prgBanks * 16 * 1024));
 
-            var chrRomSize = header2.Value.PrgCharRomSizeMsb << 8 | header2.Value.ChrRomSizeLsb;
+            var chrRomSize = ((header.PrgRamSize & 0x38) << 8) | header.ChrRomChunks;
             cartridge._chrBanks = chrRomSize;
 
             // Create RAM if CHR ROM is not present
@@ -106,6 +105,26 @@ public class Cartridge
             case 0:
                 cartridge._mapper = new Mapper000(cartridge._prgBanks, cartridge._chrBanks);
                 break;
+
+            case 1:
+                cartridge._mapper = new Mapper001(cartridge._prgBanks, cartridge._chrBanks);
+                break;
+
+            case 2:
+                cartridge._mapper = new Mapper002(cartridge._prgBanks, cartridge._chrBanks);
+                break;
+
+            case 3:
+                cartridge._mapper = new Mapper003(cartridge._prgBanks, cartridge._chrBanks);
+                break;
+
+            case 4:
+                cartridge._mapper = new Mapper004(cartridge._prgBanks, cartridge._chrBanks);
+                break;
+
+            case 66:
+                cartridge._mapper = new Mapper066(cartridge._prgBanks, cartridge._chrBanks);
+                break;
         }
 
         return cartridge;
@@ -113,20 +132,33 @@ public class Cartridge
 
     public bool CpuRead(ushort address, out byte data)
     {
-        if (_mapper is not null && _mapper.CpuMapRead(address, out var mappedAddress))
+        data = 0;
+
+        if (_mapper is not null && _mapper.CpuMapRead(address, out var mappedAddress, ref data))
         {
+            if (mappedAddress == 0xFFFFFFFF)
+            {
+                // Mapper has handled the read, no need to continue
+                return true;
+            }
+
             data = _prgMemory[(int)mappedAddress];
             return true;
         }
 
-        data = 0;
         return false;
     }
 
     public bool CpuWrite(ushort address, byte data)
     {
-        if (_mapper is not null && _mapper.CpuMapWrite(address, out var mappedAddress))
+        if (_mapper is not null && _mapper.CpuMapWrite(address, out var mappedAddress, data))
         {
+            if (mappedAddress == 0xFFFFFFFF)
+            {
+                // Mapper has handled the write, no need to continue
+                return true;
+            }
+
             _prgMemory[(int)mappedAddress] = data;
             return true;
         }
@@ -162,7 +194,16 @@ public class Cartridge
         _mapper?.Reset();
     }
 
-    public MirrorMode MirrorMode => _mirrorMode;
+    public MirrorMode MirrorMode
+    {
+        get
+        {
+            var m = _mapper?.Mirror() ?? _mirrorMode;
+            return m == MirrorMode.Hardware ? _mirrorMode : m;
+        }
+    }
+
+    public MapperBase? Mapper => _mapper;
 
     private readonly record struct NesHeader(char[] Name, byte PrgRomChunks, byte ChrRomChunks, byte Mapper1, byte Mapper2, byte PrgRamSize, byte TvSystem1, byte TvSystem2, byte[] Unused);
     private readonly record struct Nes2Header(char[] Name, byte PrgRomSizeLsb, byte ChrRomSizeLsb, byte Mapper1, byte Mapper2, byte Mapper3, byte PrgCharRomSizeMsb, byte PrgRamSize, byte ChrRamSize, byte CpuPpuTiming, byte TvSystem, byte MiscRoms, byte ExpansionDevice);

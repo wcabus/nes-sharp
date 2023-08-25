@@ -1,16 +1,25 @@
 ﻿namespace NesSharp.Core.Mappers;
 
-public sealed class Mapper000 : MapperBase
+public sealed class Mapper002 : MapperBase
 {
-    public Mapper000(int prgBanks, int chrBanks) : base(prgBanks, chrBanks)
+    private byte _prgBankSelectLo;
+    private byte _prgBankSelectHi;
+
+    public Mapper002(int prgBanks, int chrBanks) : base(prgBanks, chrBanks)
     {
     }
 
     public override bool CpuMapRead(ushort address, out uint mappedAddress, ref byte data)
     {
-        if (address >= 0x8000)
+        if (address is >= 0x8000 and <= 0xBFFF)
         {
-            mappedAddress = (uint)(address & (PrgBanks > 1 ? 0x7FFF : 0x3FFF));
+            mappedAddress = (uint)(_prgBankSelectLo * 0x4000 + (address & 0x3FFF));
+            return true;
+        }
+
+        if (address >= 0xC000)
+        {
+            mappedAddress = (uint)(_prgBankSelectHi * 0x4000 + (address & 0x3FFF));
             return true;
         }
 
@@ -22,8 +31,7 @@ public sealed class Mapper000 : MapperBase
     {
         if (address >= 0x8000)
         {
-            mappedAddress = (uint)(address & (PrgBanks > 1 ? 0x7FFF : 0x3FFF));
-            return true;
+            _prgBankSelectLo = (byte)(data & 0x0F);
         }
 
         mappedAddress = 0;
@@ -56,5 +64,11 @@ public sealed class Mapper000 : MapperBase
 
         mappedAddress = 0;
         return false;
+    }
+
+    public override void Reset()
+    {
+        _prgBankSelectLo = 0;
+        _prgBankSelectHi = (byte)(PrgBanks - 1);
     }
 }

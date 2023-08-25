@@ -1,8 +1,10 @@
 ﻿namespace NesSharp.Core.Mappers;
 
-public sealed class Mapper000 : MapperBase
+public sealed class Mapper003 : MapperBase
 {
-    public Mapper000(int prgBanks, int chrBanks) : base(prgBanks, chrBanks)
+    private byte _chrBankSelect;
+
+    public Mapper003(int prgBanks, int chrBanks) : base(prgBanks, chrBanks)
     {
     }
 
@@ -20,13 +22,14 @@ public sealed class Mapper000 : MapperBase
 
     public override bool CpuMapWrite(ushort address, out uint mappedAddress, byte data = 0)
     {
+        mappedAddress = 0;
+
         if (address >= 0x8000)
         {
-            mappedAddress = (uint)(address & (PrgBanks > 1 ? 0x7FFF : 0x3FFF));
-            return true;
+            _chrBankSelect = (byte)(data & 0x03);
+            mappedAddress = address;
         }
 
-        mappedAddress = 0;
         return false;
     }
 
@@ -34,7 +37,7 @@ public sealed class Mapper000 : MapperBase
     {
         if (address <= 0x1FFF)
         {
-            mappedAddress = address;
+            mappedAddress = (uint)(_chrBankSelect * 0x2000 + address);
             return true;
         }
 
@@ -44,17 +47,12 @@ public sealed class Mapper000 : MapperBase
 
     public override bool PpuMapWrite(ushort address, out uint mappedAddress)
     {
-        if (address <= 0x1FFF)
-        {
-            if (ChrBanks == 0)
-            {
-                // Treat as RAM
-                mappedAddress = address;
-                return true;
-            }
-        }
-
         mappedAddress = 0;
         return false;
+    }
+
+    public override void Reset()
+    {
+        _chrBankSelect = 0;
     }
 }
