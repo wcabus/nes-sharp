@@ -15,6 +15,7 @@ public sealed class Cpu
     private byte _cycles;
 
     private readonly Instruction[] _instructionSet;
+    private bool _isHalted;
 
     public Cpu()
     {
@@ -151,6 +152,12 @@ public sealed class Cpu
         _fetchedData = 0;
 
         _cycles = 8;
+        _isHalted = false;
+    }
+
+    public void Stop()
+    {
+        _isHalted = true;
     }
 
     /// <summary>
@@ -159,7 +166,7 @@ public sealed class Cpu
     /// <remarks>These kinds of interrupts can be ignored if the interrupt enable flag is not set.</remarks>
     public void IRQ()
     {
-        if (InterruptDisableFlag)
+        if (InterruptDisableFlag || _isHalted)
         {
             return;
         }
@@ -189,6 +196,11 @@ public sealed class Cpu
     /// <remarks>These interrupts cannot be ignored.</remarks>
     public void NMI()
     {
+        if (_isHalted)
+        {
+            return;
+        }
+
         WriteByte((ushort)(0x0100 + SP), (byte)((PC >>> 8) & 0x00FF));
         SP--;
         WriteByte((ushort)(0x0100 + SP), (byte)(PC & 0x00FF));
@@ -210,6 +222,11 @@ public sealed class Cpu
 
     public void Clock()
     {
+        if (_isHalted)
+        {
+            return;
+        }
+
         if (_cycles == 0)
         {
             _opCode = ReadByte(PC);

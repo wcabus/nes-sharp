@@ -98,6 +98,12 @@ public sealed class Bus
         _systemClockCounter = 0;
     }
 
+    public void Stop()
+    {
+        _cpu.Stop();
+        _ppu.Stop();
+    }
+
     public void Clock()
     {
         _ppu.Clock();

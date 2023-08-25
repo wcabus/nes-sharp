@@ -31,6 +31,8 @@
             emulatorOutput = new PictureBox();
             menuStrip1 = new MenuStrip();
             fileToolStripMenuItem = new ToolStripMenuItem();
+            loadROMToolStripMenuItem = new ToolStripMenuItem();
+            toolStripMenuItem1 = new ToolStripSeparator();
             exitToolStripMenuItem = new ToolStripMenuItem();
             debugToolStripMenuItem = new ToolStripMenuItem();
             showDebugWindowToolStripMenuItem = new ToolStripMenuItem();
@@ -59,16 +61,29 @@
             // 
             // fileToolStripMenuItem
             // 
-            fileToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { exitToolStripMenuItem });
+            fileToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { loadROMToolStripMenuItem, toolStripMenuItem1, exitToolStripMenuItem });
             fileToolStripMenuItem.Name = "fileToolStripMenuItem";
             fileToolStripMenuItem.Size = new Size(37, 20);
             fileToolStripMenuItem.Text = "&File";
+            // 
+            // loadROMToolStripMenuItem
+            // 
+            loadROMToolStripMenuItem.Name = "loadROMToolStripMenuItem";
+            loadROMToolStripMenuItem.ShortcutKeys = Keys.Control | Keys.O;
+            loadROMToolStripMenuItem.Size = new Size(182, 22);
+            loadROMToolStripMenuItem.Text = "&Load ROM...";
+            loadROMToolStripMenuItem.Click += OnLoadRomClicked;
+            // 
+            // toolStripMenuItem1
+            // 
+            toolStripMenuItem1.Name = "toolStripMenuItem1";
+            toolStripMenuItem1.Size = new Size(179, 6);
             // 
             // exitToolStripMenuItem
             // 
             exitToolStripMenuItem.Name = "exitToolStripMenuItem";
             exitToolStripMenuItem.ShortcutKeys = Keys.Alt | Keys.F4;
-            exitToolStripMenuItem.Size = new Size(135, 22);
+            exitToolStripMenuItem.Size = new Size(182, 22);
             exitToolStripMenuItem.Text = "&Exit";
             exitToolStripMenuItem.Click += exitToolStripMenuItem_Click;
             // 
@@ -115,5 +130,7 @@
         private ToolStripMenuItem exitToolStripMenuItem;
         private ToolStripMenuItem debugToolStripMenuItem;
         private ToolStripMenuItem showDebugWindowToolStripMenuItem;
+        private ToolStripMenuItem loadROMToolStripMenuItem;
+        private ToolStripSeparator toolStripMenuItem1;
     }
 }

@@ -30,29 +30,10 @@ namespace NesSharp.WinForms
             _buffer[1] = new Bitmap(256, 240, PixelFormat.Format32bppArgb);
         }
 
-        private async void EmulatorWindow_Load(object sender, EventArgs e)
+        private void EmulatorWindow_Load(object sender, EventArgs e)
         {
             InitializeInput();
             _nesSystem = new Bus();
-
-            var fileName = "E:\\temp\\NES-ROMS\\nestest.nes";
-            var cartridge = await Cartridge.FromFile(fileName);
-            _nesSystem.InsertCartridge(cartridge);
-
-            _nesSystem.Reset();
-            _cancellationTokenSource = new();
-
-            var cancelToken = _cancellationTokenSource.Token;
-
-            _emulationThread = new Thread(() =>
-            {
-                PrepareEmulator();
-                while (!cancelToken.IsCancellationRequested)
-                {
-                    UpdateGame();
-                }
-            });
-            _emulationThread.Start();
         }
 
         private void EmulatorWindow_Closing(object sender, FormClosingEventArgs e)
@@ -87,7 +68,7 @@ namespace NesSharp.WinForms
             _time2 = DateTime.UtcNow;
         }
 
-        private void UpdateGame()
+        private void UpdateGame(CancellationToken cancellationToken)
         {
             _time2 = DateTime.UtcNow;
             var elapsed = _time2 - _time1;
@@ -97,10 +78,10 @@ namespace NesSharp.WinForms
 
             _nesSystem!.SetControllerState(0, _playerOne[P1KeyUp], _playerOne[P1KeyDown], _playerOne[P1KeyLeft], _playerOne[P1KeyRight], _playerOne[P1KeyStart], _playerOne[P1KeySelect], _playerOne[P1KeyA], _playerOne[P1KeyB]);
 
-            RunEmulator(elapsedTime);
+            RunEmulator(elapsedTime, cancellationToken);
         }
 
-        private void RunEmulator(float elapsedTime)
+        private void RunEmulator(float elapsedTime, CancellationToken cancellationToken)
         {
             if (_residualTime > 0.0f)
             {
@@ -114,7 +95,11 @@ namespace NesSharp.WinForms
             {
                 _nesSystem!.Clock();
             }
-            while (!_nesSystem.Ppu.FrameComplete);
+            while (!_nesSystem.Ppu.FrameComplete && !cancellationToken.IsCancellationRequested);
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
 
             _nesSystem.Ppu.FrameComplete = false;
 
@@ -208,6 +193,58 @@ namespace NesSharp.WinForms
             {
                 _playerOne[e.KeyCode] = false;
             }
+        }
+
+        private async void OnLoadRomClicked(object sender, EventArgs e)
+        {
+            _nesSystem!.Stop();
+            _cancellationTokenSource.Cancel();
+            while (_emulationThread is not null && _emulationThread.IsAlive)
+            {
+                await Task.Delay(10);
+            }
+
+            using var openFileDialog = new OpenFileDialog();
+
+            openFileDialog.Filter = @"NES ROM files (*.nes)|*.nes|All files (*.*)|*.*";
+            openFileDialog.FilterIndex = 1;
+            openFileDialog.RestoreDirectory = true;
+            openFileDialog.AutoUpgradeEnabled = true;
+            openFileDialog.CheckFileExists = true;
+
+            if (openFileDialog.ShowDialog() != DialogResult.OK)
+            {
+                return;
+            }
+
+            var fileName = openFileDialog.FileName;
+            if (string.IsNullOrEmpty(fileName))
+            {
+                return;
+            }
+
+            var cartridge = await Cartridge.FromFile(fileName);
+            StartEmulator(cartridge);
+        }
+
+        private void StartEmulator(Cartridge cartridge)
+        {
+            _nesSystem!.InsertCartridge(cartridge);
+
+            _nesSystem.Reset();
+            _cancellationTokenSource = new();
+
+            var cancelToken = _cancellationTokenSource.Token;
+
+            _emulationThread = new Thread(() =>
+            {
+                PrepareEmulator();
+                while (!cancelToken.IsCancellationRequested)
+                {
+                    UpdateGame(cancelToken);
+                }
+            });
+            _emulationThread.Start();
         }
 
         // Player 1 Inputs

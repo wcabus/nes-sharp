@@ -44,6 +44,7 @@ public sealed class Ppu
     private readonly RgbColor[] _screen = new RgbColor[256 * 240];
 
     private Cartridge? _cartridge;
+    private bool _isHalted;
 
     private static readonly RgbColor[] PalScreen =
     {
@@ -72,11 +73,37 @@ public sealed class Ppu
 
     public void Reset()
     {
-        _fineX = 0;
+        _cycle = 0;
+        _scanLine = -1;
+
+        Array.Clear(_nameTable[0], 0, 1024);
+        Array.Clear(_nameTable[1], 0, 1024);
+        Array.Clear(_palette, 0, 32);
+        Array.Clear(_patternTable[0], 0, 4096);
+        Array.Clear(_patternTable[1], 0, 4096);
+
+        _oamAddress = 0;
+        Array.Clear(_oamData, 0, 64 * 4);
+
+        Array.Clear(_spriteScanLine, 0, 8);
+        _spriteCount = 0;
+        Array.Clear(_spriteShifterPatternLo, 0, 8);
+        Array.Clear(_spriteShifterPatternHi, 0, 8);
+
+        _spriteZeroHitPossible = false;
+        _spriteZeroBeingRendered = false;
+
+        _status.Register = 0;
+        _mask.Register = 0;
+        _control.Register = 0;
+
         _addressLatch = 0;
         _ppuDataBuffer = 0;
-        _scanLine = 0;
-        _cycle = 0;
+
+        _vramAddress.Register = 0;
+        _tramAddress.Register = 0;
+        _fineX = 0;
+
         _bgNextTileId = 0;
         _bgNextTileAttribute = 0;
         _bgNextTileLsb = 0;
@@ -85,15 +112,27 @@ public sealed class Ppu
         _bgShifterPatternHi = 0;
         _bgShifterAttributeLo = 0;
         _bgShifterAttributeHi = 0;
-        _status.Register = 0;
-        _mask.Register = 0;
-        _control.Register = 0;
-        _vramAddress.Register = 0;
-        _tramAddress.Register = 0;
+        
+        Array.Clear(_screen, 0, 256 * 240);
+
+        IsNMISet = false;
+        FrameComplete = false;
+
+        _isHalted = false;
+    }
+
+    public void Stop()
+    {
+        _isHalted = true;
     }
 
     public void Clock()
     {
+        if (_isHalted)
+        {
+            return;
+        }
+
         void IncrementScrollX()
         {
             if (_mask.ShowBackground || _mask.ShowSprites)
