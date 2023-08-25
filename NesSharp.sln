@@ -3,19 +3,22 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NesSharp.Core", "NesSharp.Core\NesSharp.Core.csproj", "{D3BE8596-C95E-4301-B685-5B3B7E37432C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NesSharp.Core", "NesSharp.Core\NesSharp.Core.csproj", "{D3BE8596-C95E-4301-B685-5B3B7E37432C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NesSharp.Console", "NesSharp.Console\NesSharp.Console.csproj", "{91C01285-E25A-4655-98B3-30603DDC38FE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NesSharp.Console", "NesSharp.Console\NesSharp.Console.csproj", "{91C01285-E25A-4655-98B3-30603DDC38FE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NesSharp.WinForms", "NesSharp.WinForms\NesSharp.WinForms.csproj", "{F857BD0F-EF1A-4663-BBFE-641DB06A91F2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NesSharp.WinForms", "NesSharp.WinForms\NesSharp.WinForms.csproj", "{F857BD0F-EF1A-4663-BBFE-641DB06A91F2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution items", "Solution items", "{DF6D1300-24A2-405B-A2EA-6D1B29010722}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE.md = LICENSE.md
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{D3BE8596-C95E-4301-B685-5B3B7E37432C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -30,5 +33,11 @@ Global
 		{F857BD0F-EF1A-4663-BBFE-641DB06A91F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F857BD0F-EF1A-4663-BBFE-641DB06A91F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F857BD0F-EF1A-4663-BBFE-641DB06A91F2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CBDCF78E-F5FC-4751-A34F-EA13A3B23CE2}
 	EndGlobalSection
 EndGlobal
