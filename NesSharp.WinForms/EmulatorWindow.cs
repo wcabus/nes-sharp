@@ -273,7 +273,7 @@ namespace NesSharp.WinForms
         {
             _nesSystem!.SetSampleFrequency(44100);
 
-            _soundDriver.InitializeAudio(44100, 1, 16, 512);
+            _soundDriver.InitializeAudio(44100, 1, 16, 1024);
             _soundDriver.SetSoundOutMethod(SoundOut);
         }
 
