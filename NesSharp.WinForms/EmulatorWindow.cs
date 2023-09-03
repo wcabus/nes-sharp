@@ -9,12 +9,8 @@ namespace NesSharp.WinForms
     {
         private Thread? _emulationThread;
         private CancellationTokenSource _emulatorCancellationTokenSource = new();
-        private CancellationToken _cancellationToken = default;
+        private CancellationToken _cancellationToken;
 
-        private DateTime _time1;
-        private DateTime _time2;
-
-        private float _residualTime;
         private Bus? _nesSystem;
 
         private readonly Dictionary<Keys, bool> _playerOne = new();
@@ -110,53 +106,51 @@ namespace NesSharp.WinForms
             _emulatorCancellationTokenSource = new();
 
             var cancelToken = _emulatorCancellationTokenSource.Token;
+            var emulatorState = new EmulatorState(_nesSystem, cancelToken);
 
-            _emulationThread = new Thread(() =>
-            {
-                PrepareEmulator();
-                while (!cancelToken.IsCancellationRequested)
-                {
-                    UpdateGame(cancelToken);
-                }
-            });
-            _emulationThread.Start();
+            _emulationThread = new Thread(UpdateGame);
+            _emulationThread.Start(emulatorState);
 
             _cancellationToken = cancelToken;
         }
 
-        private void PrepareEmulator()
+        private record EmulatorState(Bus NesSystem, CancellationToken CancellationToken = default);
+
+        private void UpdateGame(object? obj)
         {
-            _time1 = DateTime.UtcNow;
-            _time2 = DateTime.UtcNow;
-        }
-
-        private void UpdateGame(CancellationToken cancellationToken)
-        {
-            _time2 = DateTime.UtcNow;
-            var elapsed = _time2 - _time1;
-            _time1 = _time2;
-
-            var elapsedTime = (float)elapsed.Ticks;
-                        
-            RunEmulator(elapsedTime, cancellationToken);
-        }
-
-        private void RunEmulator(float elapsedTime, CancellationToken cancellationToken)
-        {
-            _nesSystem!.SetControllerState(0, _playerOne[P1KeyUp], _playerOne[P1KeyDown], _playerOne[P1KeyLeft], _playerOne[P1KeyRight], _playerOne[P1KeyStart], _playerOne[P1KeySelect], _playerOne[P1KeyA], _playerOne[P1KeyB]);
-
-            if (cancellationToken.IsCancellationRequested)
+            if (obj is not EmulatorState emulatorState)
             {
                 return;
             }
 
-            _nesSystem.Ppu.FrameComplete = false;
-
-            UpdateEmulatorOutputAndDebugWindow();
+            while (!emulatorState.CancellationToken.IsCancellationRequested)
+            {
+                RunEmulator(emulatorState);
+            }
         }
 
-        private void UpdateEmulatorOutputAndDebugWindow()
+        private void RunEmulator(EmulatorState emulatorState)
         {
+            emulatorState.NesSystem.SetControllerState(0, _playerOne[P1KeyUp], _playerOne[P1KeyDown], _playerOne[P1KeyLeft], _playerOne[P1KeyRight], _playerOne[P1KeyStart], _playerOne[P1KeySelect], _playerOne[P1KeyA], _playerOne[P1KeyB]);
+
+            if (emulatorState.CancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            var ppu = emulatorState.NesSystem.Ppu;
+            if (!ppu.FrameComplete)
+            {
+                return;
+            }
+
+            UpdateEmulatorOutputAndDebugWindow(ppu);
+        }
+
+        private void UpdateEmulatorOutputAndDebugWindow(Ppu ppu)
+        {
+            ppu.FrameComplete = false;
+
             // Draw the screen
             BitmapData? bitmapData = null;
             var bitmap = _buffer[_bufferIndex];
@@ -167,7 +161,7 @@ namespace NesSharp.WinForms
                 unsafe
                 {
                     var dstPointer = (byte*)bitmapData.Scan0.ToPointer();
-                    var src = _nesSystem!.Ppu.Screen;
+                    var src = ppu.Screen;
 
                     for (var y = 0; y < 240; y++)
                     {
